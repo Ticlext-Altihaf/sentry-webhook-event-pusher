@@ -1,0 +1,1 @@
+# Rebroadcast Sentry webhook events to Discord
