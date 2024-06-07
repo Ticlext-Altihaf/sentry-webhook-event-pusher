@@ -49,7 +49,7 @@ async fn send_to_discord(event: sentry_definition::SentryEvent) {
     );
     // ISO 8601
     //    "timestamp": 1717749612.583,
-    let timestamp = DateTime::<Utc>::from_timestamp_millis(event.event.timestamp as i64);
+    let timestamp = DateTime::<Utc>::from_timestamp_millis((event.event.timestamp*1000.0) as i64);
     if timestamp.is_none() {
         // use current time if we can't parse the timestamp from the
         embed.insert(
@@ -80,11 +80,7 @@ async fn send_to_discord(event: sentry_definition::SentryEvent) {
         "value": event.event.level,
         "inline": true
     }));
-    fields.push(serde_json::json!({
-        "name": "Logger",
-        "value": event.event.logger,
-        "inline": true
-    }));
+   
     fields.push(serde_json::json!({
         "name": "Platform",
         "value": event.event.platform,
@@ -100,30 +96,44 @@ async fn send_to_discord(event: sentry_definition::SentryEvent) {
     embeds.push(serde_json::Value::Object(embed));
     map.insert("embeds".to_string(), serde_json::Value::Array(embeds));
 
+    let str = serde_json::Value::Object(map).to_string();
     let client = reqwest::Client::new();
-    let res = client.post(discord_webhook).json(&map).send().await;
+    let res = client
+    .post(discord_webhook)
+    .header("Content-Type", "application/json")
+    .body(str)
+    .send()
+    .await;
     match res {
-        Ok(_) => println!("Sent to Discord"),
-        Err(e) => println!("Error sending to Discord: {}", e),
+        Ok(val) => println!("Discord response: {} {}", val.status(), val.text().await.unwrap()),
+        Err(e) => println!("Error sending to Discord: {:?}", e),
     }
 }
 
 async fn handle_sentry(item: web::Json<sentry_definition::SentryEvent>) -> impl Responder {
-    println!("Received Sentry event: {:?}", item);
+    println!("Received Sentry event: {:?}", item.event.title);
     send_to_discord(item.clone()).await;
 
     "OK"
 }
 
-#[actix_web::main] // or #[tokio::main]
-async fn main() -> std::io::Result<()> {
-    dotenv().ok();
-    // check Discord webhook
+
+async fn check(){
     let discord_webhook_res = env::var("DISCORD_WEBHOOK");
     match discord_webhook_res {
         Ok(val) => println!("Discord webhook found {}", val),
         Err(e) => println!("No Discord webhook found {}", e),
     }
+    let discord_webhook_url = env::var("DISCORD_WEBHOOK").unwrap();
+    // check if URL is valid
+    let client = reqwest::Client::new();
+    client.get(discord_webhook_url).send().await.unwrap();
+}
+
+#[actix_web::main] // or #[tokio::main]
+async fn main() -> std::io::Result<()> {
+    dotenv().ok();
+    check().await;
     let port = env::var("PORT").unwrap_or("8080".to_string());
     let port_int = port.parse::<u16>().unwrap();
     println!("Starting server on port {}", port_int);
