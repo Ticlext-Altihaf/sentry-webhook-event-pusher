@@ -38,9 +38,9 @@ pub struct Event {
     pub received: f64,
     pub environment: String,
     pub user: User,
-    pub request: Request,
+    
     pub contexts: Contexts,
-    pub stacktrace: Stacktrace,
+    //pub stacktrace: Stacktrace,
     pub tags: Vec<Vec<String>>,
     pub extra: Extra3,
     pub metadata: Metadata,
@@ -98,29 +98,7 @@ pub struct Geo {
     pub region: String,
 }
 
-#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct Request {
-    pub url: String,
-    pub method: String,
-    pub data: Data,
-    #[serde(rename = "query_string")]
-    pub query_string: Vec<Vec<String>>,
-    pub cookies: Vec<Vec<String>>,
-    pub headers: Vec<Vec<String>>,
-    pub env: Env,
-    #[serde(rename = "inferred_content_type")]
-    pub inferred_content_type: String,
-    #[serde(rename = "api_target")]
-    pub api_target: Value,
-    pub fragment: Value,
-}
 
-#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct Data {
-    pub hello: String,
-}
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -180,7 +158,6 @@ pub struct Frame {
     pub in_app: bool,
     pub vars: Vars,
     pub colno: Value,
-    pub data: Value,
     pub errors: Value,
     #[serde(rename = "raw_function")]
     pub raw_function: Value,

@@ -13,29 +13,55 @@ async fn send_to_discord(event: sentry_definition::SentryEvent) {
     let discord_webhook = match discord_webhook_res {
         Ok(val) => val,
         Err(_e) => {
-            return;//no discord webhook
+            return; //no discord webhook
         }
     };
 
     let mut map = serde_json::Map::new();
-    map.insert("username".to_string(), serde_json::Value::String("Sentry".to_string()));
-    map.insert("avatar_url".to_string(), serde_json::Value::String("https://sentry.io/_assets/branding/png/sentry-horizontal-black.png".to_string()));
+    map.insert(
+        "username".to_string(),
+        serde_json::Value::String("Sentry".to_string()),
+    );
+    map.insert(
+        "avatar_url".to_string(),
+        serde_json::Value::String(
+            "https://sentry.io/_assets/branding/png/sentry-horizontal-black.png".to_string(),
+        ),
+    );
 
     let mut embeds = Vec::new();
     let mut embed = serde_json::Map::new();
-    embed.insert("title".to_string(), serde_json::Value::String(event.message.clone()));
-    embed.insert("description".to_string(), serde_json::Value::String(event.culprit.clone()));
-    embed.insert("url".to_string(), serde_json::Value::String(event.url.clone()));
-    embed.insert("color".to_string(), serde_json::Value::Number(serde_json::Number::from(16711680)));
+    embed.insert(
+        "title".to_string(),
+        serde_json::Value::String(event.message.clone()),
+    );
+    embed.insert(
+        "description".to_string(),
+        serde_json::Value::String(event.culprit.clone()),
+    );
+    embed.insert(
+        "url".to_string(),
+        serde_json::Value::String(event.url.clone()),
+    );
+    embed.insert(
+        "color".to_string(),
+        serde_json::Value::Number(serde_json::Number::from(16711680)),
+    );
     // ISO 8601
     //    "timestamp": 1717749612.583,
     let timestamp = DateTime::<Utc>::from_timestamp_millis(event.event.timestamp as i64);
     if timestamp.is_none() {
         // use current time if we can't parse the timestamp from the
-        embed.insert("timestamp".to_string(), serde_json::Value::String(Utc::now().to_rfc3339()));
-    }else{
+        embed.insert(
+            "timestamp".to_string(),
+            serde_json::Value::String(Utc::now().to_rfc3339()),
+        );
+    } else {
         let timestamp = timestamp.unwrap();
-        embed.insert("timestamp".to_string(), serde_json::Value::String(timestamp.to_rfc3339()));
+        embed.insert(
+            "timestamp".to_string(),
+            serde_json::Value::String(timestamp.to_rfc3339()),
+        );
     }
 
     let mut fields = Vec::new();
@@ -74,15 +100,11 @@ async fn send_to_discord(event: sentry_definition::SentryEvent) {
     embeds.push(serde_json::Value::Object(embed));
     map.insert("embeds".to_string(), serde_json::Value::Array(embeds));
 
-
     let client = reqwest::Client::new();
-    let res = client.post(discord_webhook)
-        .json(&map)
-        .send()
-        .await;
+    let res = client.post(discord_webhook).json(&map).send().await;
     match res {
         Ok(_) => println!("Sent to Discord"),
-        Err(e) => println!("Error sending to Discord: {}", e)
+        Err(e) => println!("Error sending to Discord: {}", e),
     }
 }
 
@@ -93,16 +115,14 @@ async fn handle_sentry(item: web::Json<sentry_definition::SentryEvent>) -> impl 
     "OK"
 }
 
-
 #[actix_web::main] // or #[tokio::main]
 async fn main() -> std::io::Result<()> {
     dotenv().ok();
     // check Discord webhook
     let discord_webhook_res = env::var("DISCORD_WEBHOOK");
     match discord_webhook_res {
-
         Ok(val) => println!("Discord webhook found {}", val),
-        Err(e) => println!("No Discord webhook found {}", e)
+        Err(e) => println!("No Discord webhook found {}", e),
     }
     let port = env::var("PORT").unwrap_or("8080".to_string());
     let port_int = port.parse::<u16>().unwrap();
@@ -110,11 +130,41 @@ async fn main() -> std::io::Result<()> {
     println!("URL: http://localhost:{}/sentry", port_int);
     HttpServer::new(|| {
         App::new()
-        .wrap(middleware::Logger::default())
-        .app_data(web::JsonConfig::default().limit(1024 * 32)) // <- limit size of the payload (global configuration)
-        .service(web::resource("/sentry").route(web::post().to(handle_sentry)))
+            .wrap(middleware::Logger::default())
+            .app_data(web::JsonConfig::default().limit(1024 * 32)) // <- limit size of the payload (global configuration)
+            .service(web::resource("/sentry").route(web::post().to(handle_sentry)))
     })
     .bind(("0.0.0.0", port_int))?
     .run()
     .await
+}
+
+#[cfg(test)]
+mod tests {
+    use std::fs::File;
+    use std::io::{self, BufRead};
+    use std::path::Path;
+
+    use crate::sentry_definition::SentryEvent;
+    #[test]
+    fn parse_valid_json() {
+        let path = Path::new("examples.jsonl");
+        
+        let lines_res = read_lines(path).unwrap();
+
+        for line in lines_res {
+            let event_res: SentryEvent = serde_json::from_str(&line.unwrap()).unwrap();
+            println!("{:?}", event_res);
+        }
+    }
+
+    // The output is wrapped in a Result to allow matching on errors.
+    // Returns an Iterator to the Reader of the lines of the file.
+    fn read_lines<P>(filename: P) -> io::Result<io::Lines<io::BufReader<File>>>
+    where
+        P: AsRef<Path>,
+    {
+        let file = File::open(filename)?;
+        Ok(io::BufReader::new(file).lines())
+    }
 }
