@@ -38,7 +38,6 @@ pub async fn send_mail(subject: &str, body: &str) -> Result<(), String> {
     let creds = Credentials::new(smtp_username.to_string(), smtp_password.to_string());
     let transport_builder;
     if smtp_username.is_empty() && smtp_password.is_empty() {
-        println!("No SMTP credentials provided, using dangerous builder");
         transport_builder = SmtpTransport::builder_dangerous(smtp_server.as_str());
     }else{
         transport_builder = SmtpTransport::relay(smtp_server.as_str()).unwrap();
