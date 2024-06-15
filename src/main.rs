@@ -113,7 +113,7 @@ async fn send_to_discord(event: sentry_definition::SentryEvent) {
 
 async fn send_to_email(event: sentry_definition::SentryEvent) -> Result<(), String> {
   
-    let subject = format!("{} - {}",  event.project_name, event.message);
+    let subject = format!("Sentry {} - {}",  event.project_name, event.message);
     let body = format!("Culprit: {}\nURL: {}", event.culprit, event.url);
     email::send_mail(&subject, &body).await
 }

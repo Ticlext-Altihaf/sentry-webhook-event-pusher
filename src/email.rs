@@ -40,15 +40,10 @@ pub async fn send_mail(subject: &str, body: &str) -> Result<(), String> {
     if smtp_username.is_empty() && smtp_password.is_empty() {
         transport_builder = SmtpTransport::builder_dangerous(smtp_server.as_str());
     }else{
-        println!("SMTP_USERNAME: {}", smtp_username);
-        println!("SMTP_PASSWORD: {}", smtp_password.chars().map(|_| '*').collect::<String>());
-        println!("SMTP_SERVER: {}", smtp_server);
-        println!("SMTP_PORT: {}", smtp_port);
         transport_builder = SmtpTransport::relay(smtp_server.as_str()).unwrap();
     }
     let mailer = transport_builder
         .credentials(creds)
-        .port(smtp_port.parse().unwrap())
         .build();
 
     match mailer.send(&email) {
