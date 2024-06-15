@@ -20,7 +20,7 @@ pub async fn send_mail(subject: &str, body: &str) -> Result<(), String> {
         smtp_password = String::from("");
     }
     let smtp_server = env::var("SMTP_SERVER").expect("SMTP_SERVER is not set");
-    let smtp_port = env::var("SMTP_PORT").expect("SMTP_PORT is not set");
+    let _smtp_port = env::var("SMTP_PORT").expect("SMTP_PORT is not set");
     let smtp_from = env::var("SMTP_FROM").expect("SMTP_FROM is not set");
     let emails = env::var("EMAILS").expect("EMAILS is not set");
     let emails_vec: Vec<&str> = emails.split(',').collect();
